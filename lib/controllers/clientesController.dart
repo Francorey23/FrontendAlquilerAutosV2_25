@@ -24,5 +24,34 @@ class ClienteService {
       }), //convierte un objeto Dart (mapa de datos) en un JSON jsonEncode
     );
     return response;
+  } //registro
+
+  //Login
+  Future<Map<String, dynamic>> loginCliente(
+      String correo, String password) async {
+    final url = Uri.parse('$baseUrl/login');
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json'
+        }, //header tipo de dato enviado
+        body: jsonEncode({
+          'correo': correo,
+          'password': password,
+        }));
+
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return {
+        'success': true,
+        'mensaje': responseData['mensaje'],
+        'cliente': responseData['cliente']
+      };
+    } else {
+      return {
+        'success': false,
+        'mensaje': responseData['mensaje'] ?? 'Credenciales incorrectas'
+      };
+    }
   }
 }

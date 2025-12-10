@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_6/controllers/autosController.dart';
 import 'package:flutter_application_6/views/detalleVehiculo.dart';
 import 'package:flutter_application_6/views/menuDrawerPerfil.dart';
 
@@ -14,6 +15,41 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
   final Color campos = const Color(0xFFFFECDB);
   final Color boton = const Color(0xFFFF9149);
   final Color texto = const Color(0xFF222222);
+
+  // 🔗 Controlador que consume la API
+  final AutosService autosController = AutosService();
+
+  // 📦 Lista de autos que viene del backend
+  List<Map<String, dynamic>> listaDeAutos = [];
+
+  // ⏳ Indicador de carga
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    cargarAutos();
+  }
+
+  void cargarAutos() async {
+    try {
+      final autos = await autosController.obtenerAutosDisponibles();
+
+      if (!mounted) return; // 👈 importante
+
+      setState(() {
+        listaDeAutos = autos;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return; // 👈 también aquí
+
+      setState(() {
+        isLoading = false;
+      });
+      print('Error al cargar autos: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,58 +83,102 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
             ),
             const SizedBox(height: 16.0),
 
-            // 🚗 Lista de vehículos
+            //  Lista de vehículos
             Expanded(
-              child: ListView.builder(
-                itemCount: listaDeAutos.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final auto = listaDeAutos[index];
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : listaDeAutos.isEmpty
+                      ? const Center(
+                          child: Text('No hay vehículos disponibles.'))
+                      : ListView.builder(
+                          itemCount: listaDeAutos.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final auto = listaDeAutos[index];
 
-                  return Card(
-                    elevation: 2,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          auto['imageUrl'],
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
+                            final String imageUrl =
+                                (auto['imageUrl'] ?? '') as String;
+                            final String marca =
+                                (auto['marca'] ?? '') as String;
+                            final String modelo =
+                                (auto['modelo'] ?? '') as String;
+
+                            // anio puede venir como int o String
+                            final dynamic anioRaw = auto['anio'];
+                            final int anio = anioRaw is int
+                                ? anioRaw
+                                : int.tryParse(anioRaw.toString()) ?? 0;
+                            final String anioTexto = anioRaw?.toString() ?? '';
+
+                            // precio numérico
+                            final num precioNum = (auto['precio'] ?? 0) as num;
+                            final double precio = precioNum.toDouble();
+
+                            // disponibilidad puede venir como bool o 0/1
+                            final dynamic dispRaw = auto['disponibilidad'];
+                            final bool disponibilidad =
+                                dispRaw is bool ? dispRaw : dispRaw == 1;
+
+                            return Card(
+                              elevation: 2,
+                              color: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl.isNotEmpty
+                                        ? imageUrl
+                                        : 'https://picsum.photos/330/200',
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.network(
+                                        'https://picsum.photos/330/200',
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  ),
+                                ),
+                                title: Text(
+                                  '$marca $modelo',
+                                  style: TextStyle(
+                                    color: texto,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Año: $anioTexto  •  Precio: \$${precio.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    color: texto.withOpacity(0.8),
+                                  ),
+                                ),
+                                trailing:
+                                    Icon(Icons.arrow_forward_ios, color: boton),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          DetalleVehiculoScreen(
+                                        imageUrl: imageUrl,
+                                        marca: marca,
+                                        modelo: modelo,
+                                        anio: anio,
+                                        disponibilidad: disponibilidad,
+                                        precio: precio,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                      title: Text(
-                        '${auto['marca']} ${auto['modelo']}',
-                        style: TextStyle(color: texto, fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        'Año: ${auto['anio']}  •  Precio: \$${auto['precio']}',
-                        style: TextStyle(color: texto.withOpacity(0.8)),
-                      ),
-                      trailing: Icon(Icons.arrow_forward_ios, color: boton),
-                      onTap: () {
-                        // ✅ Tipos correctos al detalle
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetalleVehiculoScreen(
-                              imageUrl: auto['imageUrl'] as String,
-                              marca: auto['marca'] as String,
-                              modelo: auto['modelo'] as String,
-                              anio: auto['anio'] as int,
-                              disponibilidad: auto['disponibilidad'] as bool,
-                              precio: auto['precio'] as int,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -110,135 +190,11 @@ class _MenuPrincipalState extends State<MenuPrincipal> {
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_car), label: 'Alquiler'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car), label: 'Alquiler'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Usuario'),
         ],
       ),
     );
   }
 }
-
-////////////////////////////
-// Datos de ejemplo
-List<Map<String, dynamic>> listaDeAutos = [
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Toyota",
-    "modelo": "Corolla",
-    "anio": 2020,
-    "disponibilidad": true,
-    "precio": 15000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Honda",
-    "modelo": "Civic",
-    "anio": 2019,
-    "disponibilidad": false,
-    "precio": 14000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Ford",
-    "modelo": "Focus",
-    "anio": 2021,
-    "disponibilidad": true,
-    "precio": 16000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Chevrolet",
-    "modelo": "Cruze",
-    "anio": 2018,
-    "disponibilidad": true,
-    "precio": 12000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Hyundai",
-    "modelo": "Elantra",
-    "anio": 2022,
-    "disponibilidad": false,
-    "precio": 17000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Nissan",
-    "modelo": "Sentra",
-    "anio": 2020,
-    "disponibilidad": true,
-    "precio": 14500
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Mazda",
-    "modelo": "Mazda3",
-    "anio": 2021,
-    "disponibilidad": true,
-    "precio": 15500
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Kia",
-    "modelo": "Forte",
-    "anio": 2019,
-    "disponibilidad": false,
-    "precio": 13500
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Volkswagen",
-    "modelo": "Jetta",
-    "anio": 2021,
-    "disponibilidad": true,
-    "precio": 16500
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Subaru",
-    "modelo": "Impreza",
-    "anio": 2018,
-    "disponibilidad": true,
-    "precio": 13000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "BMW",
-    "modelo": "Serie 3",
-    "anio": 2020,
-    "disponibilidad": false,
-    "precio": 25000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Mercedes-Benz",
-    "modelo": "Clase C",
-    "anio": 2019,
-    "disponibilidad": true,
-    "precio": 27000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Audi",
-    "modelo": "A4",
-    "anio": 2022,
-    "disponibilidad": true,
-    "precio": 29000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Peugeot",
-    "modelo": "208",
-    "anio": 2021,
-    "disponibilidad": false,
-    "precio": 18000
-  },
-  {
-    "imageUrl": "https://picsum.photos/330/200",
-    "marca": "Renault",
-    "modelo": "Clio",
-    "anio": 2020,
-    "disponibilidad": true,
-    "precio": 14000
-  },
-];

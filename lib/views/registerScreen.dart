@@ -50,6 +50,19 @@ class _registerState extends State<register> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registro exitoso!!')),
         );
+        //actualizo TextFormField limpiar
+        setState(() {
+          _nombresController.clear();
+          _correoController.clear();
+          _licenciaController.clear();
+          _passwordController.clear();
+          _validarPasswordController.clear();
+        });
+        //navegar hasta la vista del login
+        Future.delayed(Duration(seconds: 3), () {
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (context) => LoginScreen()));
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Problema en el registro: ${response.body}')),

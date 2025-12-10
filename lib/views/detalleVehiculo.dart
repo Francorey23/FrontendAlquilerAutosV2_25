@@ -6,7 +6,7 @@ class DetalleVehiculoScreen extends StatefulWidget {
   final String modelo;
   final int anio;
   final bool disponibilidad;
-  final int precio;
+  final double precio;
 
   const DetalleVehiculoScreen({
     super.key,
@@ -101,9 +101,7 @@ class _DetalleVehiculoScreenState extends State<DetalleVehiculoScreen> {
                     size: 18,
                   ),
                   label: Text(
-                    widget.disponibilidad
-                        ? 'Disponible'
-                        : 'No disponible',
+                    widget.disponibilidad ? 'Disponible' : 'No disponible',
                     style: const TextStyle(color: Colors.white),
                   ),
                   backgroundColor:
@@ -135,8 +133,7 @@ class _DetalleVehiculoScreenState extends State<DetalleVehiculoScreen> {
                   onPressed: widget.disponibilidad
                       ? () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Solicitud enviada.')),
+                            const SnackBar(content: Text('Solicitud enviada.')),
                           );
                         }
                       : null,

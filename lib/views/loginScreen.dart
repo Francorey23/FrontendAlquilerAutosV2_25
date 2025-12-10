@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_6/controllers/clientesController.dart';
 import 'package:flutter_application_6/views/menuPrincipal.dart';
 import 'package:flutter_application_6/views/registerScreen.dart';
 
@@ -15,6 +16,28 @@ class _LoginScreenState extends State<LoginScreen> {
   final Color campos = Color(0xFFFFECDB);
   final Color boton = Color(0xFFFF9149);
   final Color texto = Color(0xFF222222);
+  final TextEditingController _correoController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final ClienteService clienteService = ClienteService();
+
+  void iniciarSesion() async {
+    final correo = _correoController.text;
+    final password = _passwordController.text;
+
+    final result = await clienteService.loginCliente(correo, password);
+    if (result['success'] && result.containsKey('cliente')) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Inicio de sesión exitoso!!')));
+      Future.delayed(Duration(seconds: 2), () {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (contex) => MenuPrincipal()));
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(result['message'] ?? 'Credenciales incorrectas!!')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 90),
               TextField(
+                controller: _correoController,
                 style: TextStyle(color: texto),
                 decoration: InputDecoration(
                   filled: true,
@@ -58,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 16),
               TextField(
+                controller: _passwordController,
                 obscureText: true,
                 style: TextStyle(color: texto),
                 decoration: InputDecoration(
@@ -74,10 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 24),
               ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => MenuPrincipal()));
+                    iniciarSesion();
                   },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: boton,
@@ -96,7 +118,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context)=> MenuPrincipal()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => MenuPrincipal()));
                     },
                     child: Text(
                       'Recuperar',
@@ -116,7 +141,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context)=> register()));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => register()));
                     },
                     child: Text(
                       'Registrate',
